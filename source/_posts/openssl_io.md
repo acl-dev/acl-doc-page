@@ -141,6 +141,7 @@ static int set_timeout(int fd, int rw_timeout) {
 void echo(int fd, int rw_timeout) {
      // 设置读写超时
     if (rw_timeout > 0 && set_timeout(fd, rw_timeout) < 0) {
+        close(fd);
         return;
     }
 
@@ -178,17 +179,20 @@ void echo(int fd, int rw_timeout) {
 void ssl_echo(SSL_CTX *ctx, int fd, int rw_timeout) {
      // 设置读写超时
     if (rw_timeout > 0 && set_timeout(fd, rw_timeout) < 0) {
+        close(fd);
         return;
     }
 
     SSL* ssl = SSL_new(ctx);
     if (SSL_set_fd(ssl, fd) != 0) {
         SSL_free(ssl);
+        close(fd);
         return;
     }
 
     if (SSL_do_handshake(ssl) != 1) {
         SSL_free(ssl);
+        close(fd);
         return;
     }
 
@@ -220,6 +224,7 @@ void ssl_echo(SSL_CTX *ctx, int fd, int rw_timeout) {
 
     SSL_shutdown(ssl);
     SSL_free(ssl);
+    close(fd);
 }
 ```
 
