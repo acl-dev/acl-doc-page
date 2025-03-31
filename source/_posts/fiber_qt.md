@@ -7,7 +7,7 @@ categories: 协程编程
 
 # 一、概述
 
-人们在谈论协程编程时，往往与编写命令行网络程序有关，如编写网络客户端与网络服务器程序，很少涉及到客户端 UI 相关的界面编程。Acl 协程库是支持在 Windows 下的 UI 界面编程的，因为 Acl 协程的事件引擎支持了界面消息传递过程。最近学习了一下 QT UI 编程，轻松将 Acl 协程与 QT UI 集成在一起，从而实现了 QT 界面协程化，使开发人员在使用 QT 编写界面程序时，编写网络模块变得非常简单。
+人们在谈论协程编程时，往往与编写命令行网络程序有关，如编写网络客户端与网络服务器程序，很少涉及到客户端 UI 相关的界面编程。Acl 协程库是支持在 Windows 下的 UI 界面编程的，因为 [Acl](https://github.com/acl-dev/acl/) 协程的事件引擎支持了界面消息传递过程。最近学习了一下 QT UI 编程，轻松将 Acl 协程与 QT UI 集成在一起，从而实现了 QT 界面协程化，使开发人员在使用 QT 编写界面程序时，编写网络模块变得非常简单。
 
 本文结合 Acl 中 lib_fiber/samples-gui/QtFiber 示例，演示了如何将 Acl 协程功能集成到 QT 界面中，实现了网络模块与界面模块的融合。
 
@@ -141,17 +141,64 @@ void MainWindow::onStartServer() {
 
 必须保证在界面程序退出前停止协程调度器，否则界面程序无法正常退出，该步骤也非常重要。可以在主界面处理类里重载基类的 ` void closeEvent(QCloseEvent *event);` 方法，在该方法里停止协程调度器，如下：
 ```c++
-void MainWindow::closeEvent(QCloseEvent *event)
-{
+void MainWindow::closeEvent(QCloseEvent *event) {
     acl::fiber::schedule_stop(); // 停止协程调度器
     event->accept();             // 接受关闭事件
 }
 ```
 
-## 2.4、小结
+### 2.3.4、在界面线程中下载数据
+
+点击主界面中点击HTTP下载按钮，在事件处理函数中创建协程从后端HTTP服务器下载数据，过程如下：
+```c++
+void MainWindow::onUrlGet() {
+    ...
+    go[this] {
+        const char *url = "http://www.baidu.com/";
+        acl::http_request req(url);
+        if (!req.request(nullptr, 0)) {
+            printf("Send HTTP request failed\r\n");
+            return;
+        }
+        acl::string body;
+        if (!req.get_body(body)) {
+            printf("Get HTTP body error\r\n");
+            return;
+        }
+        qDebug() << "Got body:" << body.c_str();
+        ...
+    };
+}
+```
+
+### 2.3.5、在协程中延迟创建窗口
+
+如果想某个窗口延迟创建，不必借助定时器，直接在协程中就可以轻松实现：
+```c++
+void MainWindow::delayCreate() {
+    go[this] {
+        acl::fiber::delay(5000); // 休眠 5 秒
+        InputDialog dialog(this);
+        dialog.exec();
+    };
+    qDebug() << "Fiber was created to create one window after a while";
+}
+```
+
+## 2.4、效果展示
+
+编译运行 acl/lib_fiber/samples-gui/QtFiber/ 工程，可以得到以下运行界面：
+![fiber_qt](/img/fiber_qt.jpg)
+- 在前面窗口中，右边请求HTTP服务器时的HTTP请求头，右连接为后端服务器返回的HTTP响应头，该下载过程中在协程中进行，运行结果显示在主界面上；
+- 窗口下方的进度条为客户端协程与服务端协程交互时的交互进度展示。
+
+## 2.5、小结
 
 以上便是如何编译集成 Acl 协程到 QT 界面程序的方法，主要的要点是：
 - 需要使用 vc2019 编译 Acl 的动态库，并集成至 QT 界面程序的工程文件中；
-- 编程时需要注意两点：
+- 编程时需要注意：
   - 在启动 QT （即调用 app.exec()）前，需要先启动 Acl 协程调度器；
-  - 在主界面类里需要重载基类关闭虚方法 `closeEvent()`，并在该方法里停止 Acl 协程调度器。
+  - 在主界面类里需要重载基类关闭虚方法 `closeEvent()`，并在该方法里停止 Acl 协程调度器；
+  - 因为协程运行在界面的线程空间中，所以可以在协程中直接操作界面上的窗口对象，避免了线程之间的消息传递过程。
+
+**注：** Acl库下载：https://github.com/acl-dev/acl/
