@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4A音频自动播放体验</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            color: #fdbb2d;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+        
+        .audio-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 25px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .visualizer {
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 5px;
+            margin: 20px 0 30px;
+        }
+        
+        .bar {
+            width: 8px;
+            background: linear-gradient(to top, #fdbb2d, #ff6b6b);
+            border-radius: 4px;
+            height: 10px;
+            animation: pulse 1.5s infinite ease-in-out;
+            animation-play-state: paused;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            background: #fdbb2d;
+            color: #1a2a6c;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:hover {
+            transform: scale(1.1);
+            background: #ff6b6b;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .volume-slider {
+            width: 70%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            outline: none;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fdbb2d;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .info p {
+            margin: 10px 0;
+        }
+        
+        .audio-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .playback-message {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(253, 187, 45, 0.2);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .playback-message.show {
+            display: block;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin-top: 20px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #fdbb2d, #ff6b6b);
+            border-radius: 10px;
+            transition: width 0.1s linear;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.8); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .container {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .bar:nth-child(2) { animation-delay: 0.2s; }
+        .bar:nth-child(3) { animation-delay: 0.4s; }
+        .bar:nth-child(4) { animation-delay: 0.6s; }
+        .bar:nth-child(5) { animation-delay: 0.8s; }
+        .bar:nth-child(6) { animation-delay: 1.0s; }
+        .bar:nth-child(7) { animation-delay: 1.2s; }
+        .bar:nth-child(8) { animation-delay: 1.4s; }
+        
+        .playing .bar {
+            animation-play-state: running;
+        }
+        
+        @media (max-width: 500px) {
+            .container {
+                padding: 25px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>M4A音频自动播放</h1>
+        <p class="subtitle">支持.m4a格式的音频自动播放体验</p>
+        
+        <div class="audio-container">
+            <div class="visualizer" id="visualizer">
+                <!-- 音频可视化条将由JS动态生成 -->
+            </div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" id="playBtn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="btn" id="pauseBtn">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button class="btn" id="stopBtn">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+            
+            <div class="volume-control">
+                <i class="fas fa-volume-down"></i>
+                <input type="range" min="0" max="1" step="0.01" value="0.7" class="volume-slider" id="volumeSlider">
+                <i class="fas fa-volume-up"></i>
+            </div>
+            
+            <div class="audio-info">
+                <span>当前播放：宁静钢琴曲 (M4A格式)</span>
+                <span id="currentTime">0:00 / 0:00</span>
+            </div>
+        </div>
+        
+        <div class="playback-message" id="playbackMessage">
+            <i class="fas fa-info-circle"></i> 浏览器需要用户交互才能播放音频。请点击播放按钮开始。
+        </div>
+        
+        <div class="info">
+            <h3><i class="fas fa-file-audio"></i> M4A格式说明</h3>
+            <p>M4A是MPEG-4音频标准的文件扩展名，通常使用AAC编码。相比MP3，M4A格式提供更好的音质和更小的文件大小。</p>
+            <p>在HTML中，使用以下代码嵌入M4A音频：</p>
+            <pre>&lt;audio&gt;
+  &lt;source src="audio.m4a" type="audio/mp4"&gt;
+&lt;/audio&gt;</pre>
+            <p><i class="fas fa-exclamation-triangle"></i> 由于浏览器安全策略，某些浏览器可能需要用户交互才能自动播放音频</p>
+        </div>
+    </div>
+    
+    <!-- 内嵌M4A格式音频 -->
+    <audio id="backgroundAudio" loop>
+        <!-- 使用audio/mp4作为M4A文件的类型 -->
+        <source src="voice.m4a" type="audio/mp4">
+        您的浏览器不支持音频元素。
+    </audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const audio = document.getElementById('backgroundAudio');
+            const playBtn = document.getElementById('playBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const visualizer = document.getElementById('visualizer');
+            const currentTimeEl = document.getElementById('currentTime');
+            const playbackMessage = document.getElementById('playbackMessage');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            
+            // 创建可视化条
+            for (let i = 0; i < 12; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = `${Math.random() * 70 + 30}px`;
+                visualizer.appendChild(bar);
+            }
+            
+            // 设置音频总时长占位符
+            audio.addEventListener('loadedmetadata', function() {
+                const duration = audio.duration;
+                const minutes = Math.floor(duration / 60);
+                const seconds = Math.floor(duration % 60);
+                currentTimeEl.textContent = `0:00 / ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            });
+            
+            // 尝试自动播放
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // 自动播放失败
+                    console.log('自动播放失败:', error);
+                    playbackMessage.classList.add('show');
+                    visualizer.classList.remove('playing');
+                }).then(() => {
+                    // 自动播放成功
+                    visualizer.classList.add('playing');
+                    playBtn.querySelector('i').className = 'fas fa-pause';
+                });
+            }
+            
+            // 播放按钮事件
+            playBtn.addEventListener('click', function() {
+                if (audio.paused) {
+                    audio.play();
+                    visualizer.classList.add('playing');
+                    playBtn.querySelector('i').className = 'fas fa-pause';
+                    playbackMessage.classList.remove('show');
+                } else {
+                    audio.pause();
+                    visualizer.classList.remove('playing');
+                    playBtn.querySelector('i').className = 'fas fa-play';
+                }
+            });
+            
+            // 暂停按钮事件
+            pauseBtn.addEventListener('click', function() {
+                audio.pause();
+                visualizer.classList.remove('playing');
+                playBtn.querySelector('i').className = 'fas fa-play';
+            });
+            
+            // 停止按钮事件
+            stopBtn.addEventListener('click', function() {
+                audio.pause();
+                audio.currentTime = 0;
+                visualizer.classList.remove('playing');
+                playBtn.querySelector('i').className = 'fas fa-play';
+            });
+            
+            // 音量控制
+            volumeSlider.addEventListener('input', function() {
+                audio.volume = volumeSlider.value;
+            });
+            
+            // 更新当前时间和进度条
+            audio.addEventListener('timeupdate', function() {
+                const currentMinutes = Math.floor(audio.currentTime / 60);
+                const currentSeconds = Math.floor(audio.currentTime % 60);
+                
+                const duration = audio.duration;
+                const durationMinutes = Math.floor(duration / 60);
+                const durationSeconds = Math.floor(duration % 60);
+                
+                currentTimeEl.textContent = 
+                    `${currentMinutes}:${currentSeconds < 10 ? '0' : ''}${currentSeconds} / 
+                    ${durationMinutes}:${durationSeconds < 10 ? '0' : ''}${durationSeconds}`;
+                
+                // 更新进度条
+                const progressPercent = (audio.currentTime / duration) * 100;
+                progressBar.style.width = `${progressPercent}%`;
+            });
+            
+            // 点击进度条跳转
+            progressContainer.addEventListener('click', function(e) {
+                const width = this.clientWidth;
+                const clickX = e.offsetX;
+                const duration = audio.duration;
+                
+                audio.currentTime = (clickX / width) * duration;
+            });
+            
+            // 随机更新可视化条高度
+            setInterval(() => {
+                if (!audio.paused) {
+                    const bars = document.querySelectorAll('.bar');
+                    bars.forEach(bar => {
+                        bar.style.height = `${Math.random() * 70 + 30}px`;
+                    });
+                }
+            }, 300);
+            
+            // 当音频结束时重置
+            audio.addEventListener('ended', function() {
+                visualizer.classList.remove('playing');
+                playBtn.querySelector('i').className = 'fas fa-play';
+            });
+        });
+    </script>
+</body>
+</html>
