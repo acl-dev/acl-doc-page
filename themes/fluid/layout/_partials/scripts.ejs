@@ -26,6 +26,18 @@
   <%- js(theme.custom_js) %>
 <% } %>
 
+  <!-- ========== 百度统计代码（直接嵌入） ========== -->
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?7db0b73fc059e483cde41de52b67f1ba";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <!-- =============================================== -->
+
 <!-- 主题的启动项，将它保持在最底部 -->
 <!-- the boot of the theme, keep it at the bottom -->
 <%- js_ex(theme.static_prefix.internal_js, 'boot.js') %>
